@@ -150,8 +150,8 @@ export const CONFIG = {
 
     // LLM
     llm: {
-      model: 'qwen2.5:3b-instruct-q4_K_M',
-      maxTokens: 100,
+      model: 'qwen2.5:7b-instruct',
+      maxTokens: 150,  // 賢くなったので少し長めに
       temperature: 0.8,
       
       // キャラクター設定
