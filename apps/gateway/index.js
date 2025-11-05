@@ -1,15 +1,17 @@
 /**
  * Gateway - OpenSeeFace → WebSocket ブリッジ
- * OpenSeeFaceからOSC/TCPでトラッキングデータを受信し、
+ * OpenSeeFaceからUDPでトラッキングデータを受信し、
  * WebSocketでWebブラウザに配信する
  */
 
 const { WebSocketServer } = require('ws');
 const { createServer } = require('http');
+const dgram = require('dgram');
 const osc = require('osc');
 
 const WS_PORT = 8080;
-const OSC_PORT = 11573; // OpenSeeFaceのデフォルトポート
+const FACE_UDP_PORT = 11573; // OpenSeeFaceのポート
+const BODY_OSC_PORT = 11574; // MediaPipeのポート
 
 // WebSocketサーバー
 const server = createServer();
@@ -33,16 +35,13 @@ wss.on('connection', (ws) => {
   });
 });
 
-// OpenSeeFace OSCサーバー (osc library使用)
-const oscServerFace = new osc.UDPPort({
-  localAddress: '0.0.0.0',
-  localPort: OSC_PORT,
-  metadata: true
-});
+// OpenSeeFace UDPサーバー (バイナリパケット用)
+const faceUdpServer = dgram.createSocket('udp4');
 
+// MediaPipe OSCサーバー
 const oscServerBody = new osc.UDPPort({
   localAddress: '0.0.0.0',
-  localPort: 11574,
+  localPort: BODY_OSC_PORT,
   metadata: true
 });
 
