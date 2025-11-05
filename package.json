@@ -1,0 +1,32 @@
+{
+  "name": "vrabater",
+  "version": "1.0.0",
+  "description": "白山モチーフ Webベース3Dアバターシステム（非公式・商用可・GPUなし）",
+  "type": "module",
+  "scripts": {
+    "dev": "concurrently \"npm run dev:web\" \"npm run dev:gateway\"",
+    "dev:web": "cd apps/web && npm run dev",
+    "dev:gateway": "cd apps/gateway && npm run dev",
+    "build": "npm run build:web",
+    "build:web": "cd apps/web && npm run build",
+    "test": "vitest",
+    "start:all": "node scripts/start_all.js"
+  },
+  "workspaces": [
+    "apps/*"
+  ],
+  "devDependencies": {
+    "concurrently": "^8.2.2",
+    "vitest": "^1.0.4"
+  },
+  "keywords": [
+    "vrm",
+    "3d-avatar",
+    "ai",
+    "ollama",
+    "hakusan",
+    "local-first"
+  ],
+  "license": "MIT",
+  "private": true
+}

@@ -1,0 +1,47 @@
+# Dependencies
+node_modules/
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# Build outputs
+dist/
+build/
+*.local
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+
+# Environment
+.env
+.env.local
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Models (large files)
+apps/ai/models/*.bin
+apps/ai/models/*.gguf
+assets/hdris/*.hdr
+assets/vrm/*.vrm
+
+# Keep structure
+!assets/hdris/.gitkeep
+!assets/vrm/.gitkeep
+!apps/ai/models/.gitkeep
+
+# Temp
+temp/
+tmp/
+*.tmp
