@@ -28,7 +28,6 @@ export class DetailedUguisu {
   
   // うぐいす色
   private readonly UGUISU_COLOR = 0x928C36; // 鶯色
-  private readonly UGUISU_BELLY = 0xE8E4B8; // お腹の薄い色
   private readonly BEAK_COLOR = 0x4A3C1A; // くちばし
   
   constructor() {
@@ -55,7 +54,6 @@ export class DetailedUguisu {
     // ぽってり形状に調整
     const positions = bodyGeo.attributes.position.array as Float32Array;
     for (let i = 0; i < positions.length; i += 3) {
-      const x = positions[i];
       const y = positions[i + 1];
       const z = positions[i + 2];
       

@@ -300,15 +300,12 @@ export class DetailedBody {
    */
   private createArms() {
     for (let side = -1; side <= 1; side += 2) {
-      const sideName = side < 0 ? 'left' : 'right';
-      
       // === 上腕 ===
       const upperArmGeo = new THREE.CylinderGeometry(0.024, 0.020, 0.12, 32, 16);
       
       // 筋肉の形状
       const upperPositions = upperArmGeo.attributes.position.array as Float32Array;
       for (let i = 0; i < upperPositions.length; i += 3) {
-        const x = upperPositions[i];
         const y = upperPositions[i + 1];
         const z = upperPositions[i + 2];
         

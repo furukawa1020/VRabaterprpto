@@ -85,11 +85,6 @@ export class DetailedHair {
         )
       );
       
-      // 毛の太さ（根元から毛先で細くなる）
-      const radiusFunction = (u: number) => {
-        const baseRadius = 0.0003 + Math.random() * 0.0001;
-        return baseRadius * (1 - u * 0.7); // 毛先は30%の太さ
-      };
       
       // カスタムチューブジオメトリ
       const segments = 24;
