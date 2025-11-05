@@ -8,15 +8,15 @@ import { RGBELoader } from 'three/examples/jsm/loaders/RGBELoader.js';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { CONFIG, THEME } from '../config';
 import type { TrackingData } from '../tracking/types';
-import { SimpleCuteAvatar } from './SimpleCuteAvatar';
+import { ProceduralAvatar } from './ProceduralAvatar';
 
 export class AvatarSystem {
   private scene!: THREE.Scene;
   private camera!: THREE.PerspectiveCamera;
   private renderer!: THREE.WebGLRenderer;
   private vrm: VRM | null = null;
-  private simpleAvatar: SimpleCuteAvatar | null = null;
-  private useSimpleAvatar = false;
+  private proceduralAvatar: ProceduralAvatar | null = null;
+  private useProceduralAvatar = false;
   private clock = new THREE.Clock();
   
   // アニメーション状態
