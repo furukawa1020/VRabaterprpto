@@ -1,18 +1,12 @@
 /**
  * ProceduralAvatar.ts
- * 全ての詳細パーツを統合した完全プロシージャルアバター
+ * VTuber感マシマシの親しみやすい可愛いアバター!
  * 
- * - DetailedFace: 毛穴2000個、まつ毛70本、眉毛160本、産毛500本
- * - DetailedHair: 髪の毛3000本以上、一本一本物理演算、雪の結晶アクセサリー
- * - DetailedBody: 筋肉、骨格、指紋、手相、毛穴3000個
- * - DetailedClothing: 布の織り目、ボタンの穴、レース
+ * SimpleCuteAvatarを使用: アニメ風で親しみやすい見た目
  */
 
 import * as THREE from 'three';
-import { DetailedFace } from './parts/DetailedFace';
-import { DetailedHair } from './parts/DetailedHair';
-import { DetailedBody } from './parts/DetailedBody';
-import { DetailedClothing } from './parts/DetailedClothing';
+import { SimpleCuteAvatar } from './SimpleCuteAvatar';
 
 export interface ProceduralAvatarOptions {
   position?: THREE.Vector3;

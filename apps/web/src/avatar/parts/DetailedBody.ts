@@ -325,7 +325,7 @@ export class DetailedBody {
       });
       
       const upperArm = new THREE.Mesh(upperArmGeo, armMat);
-      upperArm.position.set(side * 0.16, 1.27, 0);
+      upperArm.position.set(side * 0.16, 0.57, 0); // 肩の位置に合わせて下げる
       upperArm.castShadow = true;
       upperArm.receiveShadow = true;
       this.group.add(upperArm);
@@ -333,21 +333,21 @@ export class DetailedBody {
       // === 肘 ===
       const elbowGeo = new THREE.SphereGeometry(0.018, 16, 16);
       const elbow = new THREE.Mesh(elbowGeo, armMat);
-      elbow.position.set(side * 0.17, 1.16, 0);
+      elbow.position.set(side * 0.17, 0.46, 0); // 上腕に合わせて下げる
       elbow.castShadow = true;
       this.group.add(elbow);
       
       // === 前腕 ===
       const forearmGeo = new THREE.CylinderGeometry(0.018, 0.014, 0.11, 32, 16);
       const forearm = new THREE.Mesh(forearmGeo, armMat);
-      forearm.position.set(side * 0.18, 1.05, 0);
+      forearm.position.set(side * 0.18, 0.35, 0); // 肘に合わせて下げる
       forearm.castShadow = true;
       forearm.receiveShadow = true;
       this.group.add(forearm);
       
-      // 腕の産毛（100本）
+      // 腕の産毛(100本)
       for (let i = 0; i < 100; i++) {
-        const hairY = 1.05 + (Math.random() - 0.5) * 0.20;
+        const hairY = 0.35 + (Math.random() - 0.5) * 0.20; // 前腕の位置に合わせて下げる
         const hairAngle = Math.random() * Math.PI * 2;
         const hairRadius = 0.014 + Math.random() * 0.004;
         
@@ -407,7 +407,7 @@ export class DetailedBody {
       });
       
       const thigh = new THREE.Mesh(thighGeo, legMat);
-      thigh.position.set(side * 0.06, 0.83, 0);
+      thigh.position.set(side * 0.06, 0.13, 0); // 腰(0.25付近)の下に配置
       thigh.castShadow = true;
       thigh.receiveShadow = true;
       this.group.add(thigh);
@@ -415,7 +415,7 @@ export class DetailedBody {
       // === 膝 ===
       const kneeGeo = new THREE.SphereGeometry(0.028, 16, 16);
       const knee = new THREE.Mesh(kneeGeo, legMat);
-      knee.position.set(side * 0.06, 0.67, 0.01);
+      knee.position.set(side * 0.06, -0.03, 0.01); // 太ももの下
       knee.castShadow = true;
       knee.scale.z = 0.85;
       this.group.add(knee);
@@ -423,7 +423,7 @@ export class DetailedBody {
       // === すね ===
       const shinGeo = new THREE.CylinderGeometry(0.028, 0.022, 0.18, 32, 16);
       const shin = new THREE.Mesh(shinGeo, legMat);
-      shin.position.set(side * 0.06, 0.52, 0.01);
+      shin.position.set(side * 0.06, -0.18, 0.01); // 膝の下
       shin.castShadow = true;
       shin.receiveShadow = true;
       this.group.add(shin);
@@ -431,7 +431,7 @@ export class DetailedBody {
       // === 足首 ===
       const ankleGeo = new THREE.CylinderGeometry(0.020, 0.018, 0.06, 16);
       const ankle = new THREE.Mesh(ankleGeo, legMat);
-      ankle.position.set(side * 0.06, 0.40, 0.01);
+      ankle.position.set(side * 0.06, -0.30, 0.01); // すねの下
       ankle.castShadow = true;
       this.group.add(ankle);
     }
@@ -443,7 +443,7 @@ export class DetailedBody {
   private createHands() {
     for (let side = -1; side <= 1; side += 2) {
       const handGroup = new THREE.Group();
-      handGroup.position.set(side * 0.18, 0.98, 0);
+      handGroup.position.set(side * 0.18, 0.28, 0); // 前腕(0.35)の下に配置
       
       const handMat = new THREE.MeshStandardMaterial({
         color: 0xfff5f0,
@@ -637,7 +637,7 @@ export class DetailedBody {
   private createFeet() {
     for (let side = -1; side <= 1; side += 2) {
       const footGroup = new THREE.Group();
-      footGroup.position.set(side * 0.06, 0.36, 0.01);
+      footGroup.position.set(side * 0.06, -0.34, 0.01); // 足首(-0.30)の下に配置
       
       const footMat = new THREE.MeshStandardMaterial({
         color: 0xfff5f0,
@@ -725,7 +725,7 @@ export class DetailedBody {
     this.shoulderUguisu = new DetailedUguisu();
     
     // 右肩に配置
-    this.shoulderUguisu.group.position.set(0.13, 1.28, 0.04);
+    this.shoulderUguisu.group.position.set(0.13, 0.58, 0.04); // 肩の位置に合わせて下げる
     
     // 体を少し傾けて止まってる感じに
     this.shoulderUguisu.group.rotation.z = -0.2;

@@ -316,7 +316,7 @@ export class DetailedClothing {
     });
     
     const collar = new THREE.Mesh(collarGeo, collarMat);
-    collar.position.set(0, 1.30, 0.08);
+    collar.position.set(0, 0.60, 0.08); // 首(0.64)に合わせて下げる
     collar.rotation.x = -Math.PI * 0.15;
     collar.castShadow = true;
     this.group.add(collar);
@@ -340,7 +340,7 @@ export class DetailedClothing {
    */
   private createRibbon() {
     const ribbonGroup = new THREE.Group();
-    ribbonGroup.position.set(0, 1.22, 0.085);
+    ribbonGroup.position.set(0, 0.52, 0.085); // 胸部に合わせて下げる
     
     const ribbonMat = new THREE.MeshStandardMaterial({
       color: THEME.colors.riverCyan,
@@ -453,7 +453,7 @@ export class DetailedClothing {
    */
   private createButtons() {
     for (let i = 0; i < 5; i++) {
-      const buttonY = 1.28 - i * 0.025;
+      const buttonY = 0.58 - i * 0.025; // 襟(0.60)の下に合わせて下げる
       
       // ボタン本体
       const buttonGeo = new THREE.CylinderGeometry(0.004, 0.004, 0.002, 16);
