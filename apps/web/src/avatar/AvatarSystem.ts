@@ -157,7 +157,7 @@ export class AvatarSystem {
       vrm.scene.scale.setScalar(CONFIG.avatar.scale);
       
       // アバターを正面（カメラ側）に向ける
-      vrm.scene.rotation.y = Math.PI / 2; // +90度回転（右向き→正面）
+      vrm.scene.rotation.y = Math.PI; // 180度回転（後ろ向き→正面）
 
       // 影の設定
       vrm.scene.traverse((obj) => {
