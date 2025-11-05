@@ -69,62 +69,79 @@ let trackingData = {
   }
 };
 
-oscServerFace.on('message', (oscMsg) => {
+// OpenSeeFace UDPメッセージハンドラ
+faceUdpServer.on('message', (msg, rinfo) => {
   try {
-    const address = oscMsg.address;
-    const args = oscMsg.args.map(arg => arg.value);
-    
+    // OpenSeeFaceのバイナリフォーマットをパース
+    // フォーマット: time (8 bytes) + id (4 bytes) + データ (可変長)
+    if (msg.length < 12) return;
+
+    const offset = 12; // タイムスタンプとIDをスキップ
+    let pos = offset;
+
+    // フロート値を読み取るヘルパー関数
+    const readFloat = () => {
+      if (pos + 4 > msg.length) return 0;
+      const value = msg.readFloatLE(pos);
+      pos += 4;
+      return value;
+    };
+
+    // 顔の回転 (quaternion → euler変換)
+    const qx = readFloat();
+    const qy = readFloat();
+    const qz = readFloat();
+    const qw = readFloat();
+
+    // Quaternion → Euler変換
+    const sinr_cosp = 2 * (qw * qx + qy * qz);
+    const cosr_cosp = 1 - 2 * (qx * qx + qy * qy);
+    const roll = Math.atan2(sinr_cosp, cosr_cosp);
+
+    const sinp = 2 * (qw * qy - qz * qx);
+    const pitch = Math.abs(sinp) >= 1 ? Math.sign(sinp) * Math.PI / 2 : Math.asin(sinp);
+
+    const siny_cosp = 2 * (qw * qz + qx * qy);
+    const cosy_cosp = 1 - 2 * (qy * qy + qz * qz);
+    const yaw = Math.atan2(siny_cosp, cosy_cosp);
+
+    trackingData.headRotation = {
+      x: pitch,
+      y: yaw,
+      z: roll
+    };
+
+    // 顔の位置
+    trackingData.facePosition = {
+      x: readFloat(),
+      y: readFloat(),
+      z: readFloat()
+    };
+
+    // 目の状態 (66個のランドマークから計算)
+    // 簡易版: 最初の数値から推定
+    const eyeLeft = readFloat();
+    const eyeRight = readFloat();
+    trackingData.blink = 1.0 - Math.min(eyeLeft, eyeRight);
+
+    // 口の開き (ランドマークから推定)
+    const mouthTop = readFloat();
+    const mouthBottom = readFloat();
+    trackingData.mouthOpen = Math.abs(mouthTop - mouthBottom);
+
+    trackingData.confidence = 0.9; // OpenSeeFaceは通常高い精度
+    trackingData.timestamp = Date.now();
+
     // デバッグ: 1%の確率でログ出力
     if (Math.random() < 0.01) {
-      console.log('[OSC FACE]', address, args);
+      console.log('[UDP FACE] rotation:', trackingData.headRotation, 'blink:', trackingData.blink);
     }
-
-    // OpenSeeFaceのOSCメッセージをパース
-    switch (address) {
-      case '/face/mouth/open':
-        trackingData.mouthOpen = Math.max(0, Math.min(1, args[0]));
-        break;
-      case '/face/mouth/smile':
-        trackingData.mouthSmile = Math.max(0, Math.min(1, args[0]));
-        break;
-      case '/face/eye/blink':
-        trackingData.blink = Math.max(0, Math.min(1, args[0]));
-        break;
-      case '/face/eyebrow/up':
-        trackingData.eyebrowUp = Math.max(0, Math.min(1, args[0]));
-        break;
-      case '/face/eye/x':
-        trackingData.eyeX = args[0];
-        break;
-      case '/face/eye/y':
-        trackingData.eyeY = args[0];
-        break;
-      case '/face/head/rotation':
-        trackingData.headRotation = {
-          x: args[0] || 0, // pitch
-          y: args[1] || 0, // yaw
-          z: args[2] || 0, // roll
-        };
-        break;
-      case '/face/position':
-        trackingData.facePosition = {
-          x: args[0] || 0,
-          y: args[1] || 0,
-          z: args[2] || 0,
-        };
-        break;
-      case '/face/confidence':
-        trackingData.confidence = args[0];
-        break;
-    }
-
-    trackingData.timestamp = Date.now();
 
     // 接続中のすべてのクライアントにブロードキャスト
     broadcastToClients(trackingData);
 
   } catch (error) {
-    console.error('OSCメッセージ処理エラー:', error);
+    console.error('❌ 顔UDPパースエラー:', error.message);
   }
 });
 
@@ -172,35 +189,36 @@ function broadcastToClients(data) {
 }
 
 // サーバー起動
-const OSC_PORT_BODY = 11574;
-
 server.listen(WS_PORT, () => {
   console.log(`
 ╔════════════════════════════════════════╗
 ║  VRabater Gateway Server (全身対応)    ║
 ╠════════════════════════════════════════╣
 ║  WebSocket: ws://localhost:${WS_PORT}      ║
-║  OSC Face:  0.0.0.0:${OSC_PORT}            ║
-║  OSC Body:  0.0.0.0:${OSC_PORT_BODY}       ║
+║  UDP Face:  0.0.0.0:${FACE_UDP_PORT}       ║
+║  OSC Body:  0.0.0.0:${BODY_OSC_PORT}       ║
 ╚════════════════════════════════════════╝
 
 ⏳ トラッキングシステムの起動を待機中...
   `);
 });
 
-// OSCサーバー起動 (顔)
-oscServerFace.open();
-oscServerFace.on('ready', () => {
-  console.log('✅ 顔トラッキングOSC起動:', OSC_PORT);
+// UDPサーバー起動 (顔 - OpenSeeFace)
+faceUdpServer.bind(FACE_UDP_PORT, '0.0.0.0');
+faceUdpServer.on('listening', () => {
+  console.log('✅ 顔トラッキングUDP起動:', FACE_UDP_PORT);
 });
 
-// OSCサーバー起動 (体)
+// OSCサーバー起動 (体 - MediaPipe)
 oscServerBody.open();
 oscServerBody.on('ready', () => {
-  console.log('✅ 体トラッキングOSC起動:', OSC_PORT_BODY);
+  console.log('✅ 体トラッキングOSC起動:', BODY_OSC_PORT);
 });
 
 // エラーハンドリング
+faceUdpServer.on('error', (error) => {
+  console.error('❌ 顔UDPエラー:', error.message);
+});
 oscServerFace.on('error', (error) => {
   console.error('❌ 顔OSCエラー:', error);
 });
