@@ -219,9 +219,6 @@ oscServerBody.on('ready', () => {
 faceUdpServer.on('error', (error) => {
   console.error('❌ 顔UDPエラー:', error.message);
 });
-oscServerFace.on('error', (error) => {
-  console.error('❌ 顔OSCエラー:', error);
-});
 
 oscServerBody.on('error', (error) => {
   console.error('❌ 体OSCエラー:', error);
@@ -229,7 +226,7 @@ oscServerBody.on('error', (error) => {
 
 process.on('SIGINT', () => {
   console.log('\n🛑 Gateway停止中...');
-  oscServerFace.close();
+  faceUdpServer.close();
   oscServerBody.close();
   wss.close();
   process.exit(0);
