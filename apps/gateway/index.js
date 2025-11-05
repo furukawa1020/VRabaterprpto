@@ -6,7 +6,8 @@
 
 const { WebSocketServer } = require('ws');
 const { createServer } = require('http');
-const osc = require('node-osc');
+const dgram = require('dgram');
+const osc = require('osc-min');
 
 const WS_PORT = 8080;
 const OSC_PORT = 11573; // OpenSeeFaceのデフォルトポート
@@ -33,11 +34,13 @@ wss.on('connection', (ws) => {
   });
 });
 
-// OpenSeeFace OSCサーバー
-const oscServer = new osc.Server(OSC_PORT, '0.0.0.0');
+// OpenSeeFace OSCサーバー (osc-min使用)
+const oscServerFace = dgram.createSocket('udp4');
+const oscServerBody = dgram.createSocket('udp4');
 
 // トラッキングデータのパース用
 let trackingData = {
+  // 顔データ
   mouthOpen: 0,
   mouthSmile: 0,
   blink: 0,
@@ -48,15 +51,31 @@ let trackingData = {
   facePosition: { x: 0, y: 0, z: 0 },
   timestamp: Date.now(),
   confidence: 1.0,
+  // 体データ
+  body: {
+    shoulder: { left: { x: 0, y: 0, z: 0 }, right: { x: 0, y: 0, z: 0 } },
+    elbow: { left: { x: 0, y: 0, z: 0 }, right: { x: 0, y: 0, z: 0 } },
+    wrist: { left: { x: 0, y: 0, z: 0 }, right: { x: 0, y: 0, z: 0 } },
+    hip: { left: { x: 0, y: 0, z: 0 }, right: { x: 0, y: 0, z: 0 } },
+    knee: { left: { x: 0, y: 0, z: 0 }, right: { x: 0, y: 0, z: 0 } },
+    ankle: { left: { x: 0, y: 0, z: 0 }, right: { x: 0, y: 0, z: 0 } },
+  }
 };
 
-oscServer.on('message', (msg) => {
+oscServerFace.on('message', (buf) => {
   try {
-    const [address, ...args] = msg;
+    const msg = osc.fromBuffer(buf);
     
-    // デバッグ: 最初の10メッセージをログ出力
-    if (Math.random() < 0.01) { // 1%の確率でログ出力
-      console.log('[OSC DEBUG]', address, args);
+    if (!msg || !msg.address) {
+      return;
+    }
+    
+    const address = msg.address;
+    const args = msg.args.map(arg => arg.value);
+    
+    // デバッグ: 1%の確率でログ出力
+    if (Math.random() < 0.01) {
+      console.log('[OSC FACE]', address, args);
     }
 
     // OpenSeeFaceのOSCメッセージをパース
@@ -108,6 +127,45 @@ oscServer.on('message', (msg) => {
   }
 });
 
+// 体トラッキングデータ受信
+oscServerBody.on('message', (buf) => {
+  try {
+    const msg = osc.fromBuffer(buf);
+    
+    if (!msg || !msg.address) {
+      return;
+    }
+    
+    const address = msg.address;
+    const args = msg.args.map(arg => arg.value);
+    
+    // デバッグ: 1%の確率でログ出力
+    if (Math.random() < 0.01) {
+      console.log('[OSC BODY]', address, args);
+    }
+    
+    // 体データのパース: /body/shoulder/left → body.shoulder.left
+    if (address.startsWith('/body/')) {
+      const parts = address.split('/');
+      const joint = parts[2]; // shoulder, elbow, wrist, hip, knee, ankle
+      const side = parts[3];  // left, right
+      
+      if (trackingData.body[joint] && trackingData.body[joint][side]) {
+        trackingData.body[joint][side] = {
+          x: args[0] || 0,
+          y: args[1] || 0,
+          z: args[2] || 0,
+        };
+      }
+    }
+    
+    trackingData.timestamp = Date.now();
+    broadcastToClients(trackingData);
+  } catch (error) {
+    console.error('体トラッキングエラー:', error);
+  }
+});
+
 function broadcastToClients(data) {
   const message = JSON.stringify(data);
   
@@ -137,14 +195,13 @@ OpenSeeFaceを起動するには:
   `);
 });
 
-console.log('✅ OSCサーバー起動:', OSC_PORT);
+// OSCサーバー起動
+oscServer.bind(OSC_PORT, '0.0.0.0', () => {
+  console.log('✅ OSCサーバー起動:', OSC_PORT);
+});
 
 // エラーハンドリング
 oscServer.on('error', (error) => {
-  // Malformed Packetエラーは無視(OpenSeeFaceとの互換性問題)
-  if (error.message && error.message.includes('Malformed Packet')) {
-    return; // 無視
-  }
   console.error('❌ OSCサーバーエラー:', error);
 });
 
