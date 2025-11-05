@@ -5,10 +5,12 @@
 
 import * as THREE from 'three';
 import { THEME } from '../../config';
+import { DetailedUguisu } from './DetailedUguisu';
 
 export class DetailedBody {
   public group: THREE.Group;
   private bones: Map<string, THREE.Bone>;
+  private shoulderUguisu: DetailedUguisu | null = null;
   
   constructor() {
     this.group = new THREE.Group();
@@ -20,6 +22,7 @@ export class DetailedBody {
     this.createLegs();
     this.createHands();
     this.createFeet();
+    this.createShoulderUguisu();
   }
   
   /**
