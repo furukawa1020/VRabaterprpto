@@ -48,7 +48,14 @@ class VRabaterApp {
 
       // VRMモデルの読み込み
       this.updateLoadingProgress('アバター読み込み中...');
-      await this.avatarSystem.loadVRM(CONFIG.avatar.defaultModel);
+      
+      // VRMファイルの読み込みを試行
+      try {
+        await this.avatarSystem.loadVRM(CONFIG.avatar.defaultModel);
+      } catch (vrmError) {
+        console.warn('⚠️ VRMファイルが見つかりません。プロシージャルアバターを使用します。');
+        // プロシージャルアバターは loadVRM() 内で自動的に生成される
+      }
 
       // ローディング完了
       this.hideLoading();
