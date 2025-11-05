@@ -4,7 +4,6 @@
  */
 
 import * as THREE from 'three';
-import { THEME } from '../../config';
 import { DetailedUguisu } from './DetailedUguisu';
 
 export class DetailedBody {
@@ -137,7 +136,6 @@ export class DetailedBody {
     // 頂点を調整
     const positions = torsoGeo.attributes.position.array as Float32Array;
     for (let i = 0; i < positions.length; i += 3) {
-      const x = positions[i];
       const y = positions[i + 1];
       const z = positions[i + 2];
       

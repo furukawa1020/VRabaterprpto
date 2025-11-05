@@ -55,7 +55,7 @@ export class AvatarSystem {
     
     this.renderer.setSize(container.clientWidth, container.clientHeight);
     this.renderer.setPixelRatio(CONFIG.avatar.rendering.pixelRatio);
-    this.renderer.outputEncoding = THREE.sRGBEncoding;
+    this.renderer.outputColorSpace = THREE.SRGBColorSpace; // Three.js r152以降
     this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
     this.renderer.toneMappingExposure = CONFIG.avatar.rendering.toneMappingExposure;
     this.renderer.shadowMap.enabled = true;
