@@ -156,8 +156,26 @@ export class AvatarSystem {
       );
       vrm.scene.scale.setScalar(CONFIG.avatar.scale);
       
-      // アバターを正面（カメラ側）に向ける
-      vrm.scene.rotation.y = Math.PI; // 180度回転（後ろ向き→正面）
+      // 🔍 VRM構造のデバッグ
+      console.log('🔍 VRM Structure Debug:');
+      console.log('  Scene rotation:', vrm.scene.rotation);
+      console.log('  Scene children:', vrm.scene.children.map(c => c.name));
+      console.log('  Humanoid bones:', vrm.humanoid ? Object.keys(vrm.humanoid.humanBones || {}) : 'no humanoid');
+      
+      // 複数の回転方法を試す
+      // 方法1: Scene全体を回転
+      vrm.scene.rotation.y = Math.PI;
+      
+      // 方法2: ヒップボーンを回転(存在する場合)
+      const hips = vrm.humanoid?.getNormalizedBoneNode('hips');
+      if (hips) {
+        console.log('  Hips bone found, rotating...');
+        hips.rotation.y = Math.PI;
+      }
+      
+      // 方法3: カメラの方を向かせる
+      console.log('  Using lookAt to face camera');
+      vrm.scene.lookAt(this.camera.position)
 
       // 影の設定
       vrm.scene.traverse((obj) => {
