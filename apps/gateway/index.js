@@ -33,9 +33,18 @@ wss.on('connection', (ws) => {
   });
 });
 
-// OpenSeeFace OSCサーバー (osc-min使用)
-const oscServerFace = dgram.createSocket('udp4');
-const oscServerBody = dgram.createSocket('udp4');
+// OpenSeeFace OSCサーバー (osc library使用)
+const oscServerFace = new osc.UDPPort({
+  localAddress: '0.0.0.0',
+  localPort: OSC_PORT,
+  metadata: true
+});
+
+const oscServerBody = new osc.UDPPort({
+  localAddress: '0.0.0.0',
+  localPort: 11574,
+  metadata: true
+});
 
 // トラッキングデータのパース用
 let trackingData = {
@@ -61,16 +70,10 @@ let trackingData = {
   }
 };
 
-oscServerFace.on('message', (buf) => {
+oscServerFace.on('message', (oscMsg) => {
   try {
-    const msg = osc.fromBuffer(buf);
-    
-    if (!msg || !msg.address) {
-      return;
-    }
-    
-    const address = msg.address;
-    const args = msg.args.map(arg => arg.value);
+    const address = oscMsg.address;
+    const args = oscMsg.args.map(arg => arg.value);
     
     // デバッグ: 1%の確率でログ出力
     if (Math.random() < 0.01) {
@@ -127,16 +130,10 @@ oscServerFace.on('message', (buf) => {
 });
 
 // 体トラッキングデータ受信
-oscServerBody.on('message', (buf) => {
+oscServerBody.on('message', (oscMsg) => {
   try {
-    const msg = osc.fromBuffer(buf);
-    
-    if (!msg || !msg.address) {
-      return;
-    }
-    
-    const address = msg.address;
-    const args = msg.args.map(arg => arg.value);
+    const address = oscMsg.address;
+    const args = oscMsg.args.map(arg => arg.value);
     
     // デバッグ: 1%の確率でログ出力
     if (Math.random() < 0.01) {
@@ -193,12 +190,14 @@ server.listen(WS_PORT, () => {
 });
 
 // OSCサーバー起動 (顔)
-oscServerFace.bind(OSC_PORT, '0.0.0.0', () => {
+oscServerFace.open();
+oscServerFace.on('ready', () => {
   console.log('✅ 顔トラッキングOSC起動:', OSC_PORT);
 });
 
 // OSCサーバー起動 (体)
-oscServerBody.bind(OSC_PORT_BODY, '0.0.0.0', () => {
+oscServerBody.open();
+oscServerBody.on('ready', () => {
   console.log('✅ 体トラッキングOSC起動:', OSC_PORT_BODY);
 });
 
