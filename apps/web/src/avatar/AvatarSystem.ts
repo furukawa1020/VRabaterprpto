@@ -278,11 +278,11 @@ export class AvatarSystem {
     const smoothing = 0.3;
     
     this.currentExpression.blink = 
-      this.currentExpression.blink * (1 - smoothing) + (data.eyesClosed || 0) * smoothing;
+      this.currentExpression.blink * (1 - smoothing) + data.blink * smoothing;
     this.currentExpression.mouthOpen = 
-      this.currentExpression.mouthOpen * (1 - smoothing) + (data.mouthOpen || 0) * smoothing;
+      this.currentExpression.mouthOpen * (1 - smoothing) + data.mouthOpen * smoothing;
     this.currentExpression.mouthSmile = 
-      this.currentExpression.mouthSmile * (1 - smoothing) + (data.smile || 0) * smoothing;
+      this.currentExpression.mouthSmile * (1 - smoothing) + data.mouthSmile * smoothing;
     
     // リップシンク
     this.proceduralAvatar.setMouthOpen(this.currentExpression.mouthOpen);
@@ -293,11 +293,9 @@ export class AvatarSystem {
     }
     
     // 視線
-    if (data.eyePosition) {
-      this.proceduralAvatar.setEyeDirection(
-        new THREE.Vector3(data.eyePosition.x, data.eyePosition.y, -1)
-      );
-    }
+    this.proceduralAvatar.setEyeDirection(
+      new THREE.Vector3(data.eyeX, data.eyeY, -1)
+    );
     
     // 頭部回転
     if (data.headRotation) {
