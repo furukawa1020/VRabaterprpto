@@ -68,8 +68,8 @@ export class SimpleCuteAvatar {
   }
 
   private createEyes() {
-    // 左目
-    const eyeGeometry = new THREE.SphereGeometry(0.035, 16, 16);
+    // 左目(もっと大きく!)
+    const eyeGeometry = new THREE.SphereGeometry(0.045, 16, 16); // 0.035 → 0.045に拡大!
     
     // 白目
     const whiteEyeMaterial = new THREE.MeshStandardMaterial({
@@ -79,44 +79,56 @@ export class SimpleCuteAvatar {
     });
     
     const leftWhite = new THREE.Mesh(eyeGeometry, whiteEyeMaterial);
-    leftWhite.position.set(-0.05, 0.67, 0.12);
+    leftWhite.position.set(-0.055, 0.67, 0.13); // 少し外側に
     this.group.add(leftWhite);
     
     const rightWhite = new THREE.Mesh(eyeGeometry, whiteEyeMaterial);
-    rightWhite.position.set(0.05, 0.67, 0.12);
+    rightWhite.position.set(0.055, 0.67, 0.13); // 少し外側に
     this.group.add(rightWhite);
     
-    // 瞳(大きくてかわいい)
-    const pupilGeometry = new THREE.SphereGeometry(0.025, 16, 16);
+    // 瞳(大きくてキラキラ✨)
+    const pupilGeometry = new THREE.SphereGeometry(0.032, 16, 16); // 0.025 → 0.032に拡大!
     const pupilMaterial = new THREE.MeshStandardMaterial({
       color: 0x1E6F68, // 翠青色
-      roughness: 0.2,
-      metalness: 0.3,
+      roughness: 0.1, // もっとツヤツヤに
+      metalness: 0.4, // キラキラ感UP
       emissive: 0x1E6F68,
-      emissiveIntensity: 0.3,
+      emissiveIntensity: 0.5, // 発光強化
     });
     
     this.leftEye = new THREE.Mesh(pupilGeometry, pupilMaterial);
-    this.leftEye.position.set(-0.05, 0.67, 0.135);
+    this.leftEye.position.set(-0.055, 0.67, 0.145);
     this.group.add(this.leftEye);
     
     this.rightEye = new THREE.Mesh(pupilGeometry, pupilMaterial);
-    this.rightEye.position.set(0.05, 0.67, 0.135);
+    this.rightEye.position.set(0.055, 0.67, 0.145);
     this.group.add(this.rightEye);
     
-    // ハイライト(キラキラ)
-    const highlightGeometry = new THREE.SphereGeometry(0.008, 8, 8);
+    // ハイライト(もっと大きく明るく✨)
+    const highlightGeometry = new THREE.SphereGeometry(0.012, 8, 8); // 0.008 → 0.012
     const highlightMaterial = new THREE.MeshBasicMaterial({
       color: 0xFFFFFF,
+      transparent: true,
+      opacity: 0.9,
     });
     
     const leftHighlight = new THREE.Mesh(highlightGeometry, highlightMaterial);
-    leftHighlight.position.set(-0.042, 0.68, 0.15);
+    leftHighlight.position.set(-0.045, 0.685, 0.16);
     this.group.add(leftHighlight);
     
     const rightHighlight = new THREE.Mesh(highlightGeometry, highlightMaterial);
-    rightHighlight.position.set(0.058, 0.68, 0.15);
+    rightHighlight.position.set(0.065, 0.685, 0.16);
     this.group.add(rightHighlight);
+    
+    // 二重ハイライト(VTuber感!)
+    const smallHighlightGeo = new THREE.SphereGeometry(0.006, 8, 8);
+    const leftHighlight2 = new THREE.Mesh(smallHighlightGeo, highlightMaterial);
+    leftHighlight2.position.set(-0.06, 0.66, 0.16);
+    this.group.add(leftHighlight2);
+    
+    const rightHighlight2 = new THREE.Mesh(smallHighlightGeo, highlightMaterial);
+    rightHighlight2.position.set(0.05, 0.66, 0.16);
+    this.group.add(rightHighlight2);
   }
 
   private createMouth() {
