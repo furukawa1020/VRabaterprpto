@@ -723,6 +723,36 @@ export class DetailedBody {
     }
   }
   
+  /**
+   * 肩に止まるうぐいす
+   */
+  private createShoulderUguisu() {
+    this.shoulderUguisu = new DetailedUguisu();
+    
+    // 右肩に配置
+    this.shoulderUguisu.group.position.set(0.13, 1.28, 0.04);
+    
+    // 体を少し傾けて止まってる感じに
+    this.shoulderUguisu.group.rotation.z = -0.2;
+    this.shoulderUguisu.group.rotation.y = -Math.PI / 6;
+    
+    // サイズ調整（リアルサイズに）
+    this.shoulderUguisu.group.scale.setScalar(1.5);
+    
+    this.group.add(this.shoulderUguisu.group);
+    
+    console.log('[DetailedBody] 肩乗りうぐいす追加完了！');
+  }
+  
+  /**
+   * アニメーション更新（うぐいすも動く）
+   */
+  public update(deltaTime: number) {
+    if (this.shoulderUguisu) {
+      this.shoulderUguisu.update(deltaTime);
+    }
+  }
+  
   public getBone(name: string): THREE.Bone | undefined {
     return this.bones.get(name);
   }
