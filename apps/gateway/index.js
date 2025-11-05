@@ -6,8 +6,7 @@
 
 const { WebSocketServer } = require('ws');
 const { createServer } = require('http');
-const dgram = require('dgram');
-const osc = require('osc-min');
+const osc = require('osc');
 
 const WS_PORT = 8080;
 const OSC_PORT = 11573; // OpenSeeFaceのデフォルトポート
