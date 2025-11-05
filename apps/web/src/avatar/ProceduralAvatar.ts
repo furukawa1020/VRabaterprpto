@@ -84,8 +84,11 @@ export class ProceduralAvatar {
    * フレーム更新（物理演算、アニメーション）
    */
   public update(deltaTime: number) {
-    // === 髪の毛3000本の物理演算（風でなびく） ===
+    // === 髪の毛3000本の物理演算（風でなびく） + 髪飾りうぐいす ===
     this.hair.update(deltaTime);
+    
+    // === 体のアニメーション + 肩乗りうぐいす ===
+    this.body.update(deltaTime);
     
     // === まばたき（2~4秒周期） ===
     this.blinkTimer += deltaTime;
