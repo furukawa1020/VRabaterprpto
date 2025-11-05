@@ -137,6 +137,135 @@ export class VRoidAvatar {
   }
 
   /**
+   * 体の各部位の回転設定
+   */
+  setBodyRotation(boneName: string, rotation: THREE.Euler) {
+    if (!this.vrm) return;
+    
+    const bone = this.vrm.humanoid.getNormalizedBoneNode(boneName as any);
+    if (bone) {
+      bone.rotation.copy(rotation);
+    }
+  }
+
+  /**
+   * 手足の位置制御
+   */
+  setLimbPosition(boneName: string, position: THREE.Vector3) {
+    if (!this.vrm) return;
+    
+    const bone = this.vrm.humanoid.getNormalizedBoneNode(boneName as any);
+    if (bone) {
+      // IK的な制御が必要な場合はここで実装
+      // 今回はシンプルに回転で対応
+      const direction = position.clone().normalize();
+      bone.lookAt(direction);
+    }
+  }
+
+  /**
+   * 全身トラッキングデータの適用
+   */
+  applyFullBodyTracking(bodyData: any) {
+    if (!this.vrm || !bodyData) return;
+
+    // 肩
+    if (bodyData.shoulder) {
+      if (bodyData.shoulder.left) {
+        const leftShoulder = this.vrm.humanoid.getNormalizedBoneNode('leftShoulder');
+        if (leftShoulder) {
+          const angle = (bodyData.shoulder.left.y - 0.5) * Math.PI;
+          leftShoulder.rotation.z = angle;
+        }
+      }
+      if (bodyData.shoulder.right) {
+        const rightShoulder = this.vrm.humanoid.getNormalizedBoneNode('rightShoulder');
+        if (rightShoulder) {
+          const angle = (bodyData.shoulder.right.y - 0.5) * Math.PI;
+          rightShoulder.rotation.z = -angle;
+        }
+      }
+    }
+
+    // 肘
+    if (bodyData.elbow) {
+      if (bodyData.elbow.left) {
+        const leftLowerArm = this.vrm.humanoid.getNormalizedBoneNode('leftLowerArm');
+        if (leftLowerArm) {
+          const angle = Math.max(0, (bodyData.elbow.left.y - 0.3) * Math.PI * 2);
+          leftLowerArm.rotation.x = -angle;
+        }
+      }
+      if (bodyData.elbow.right) {
+        const rightLowerArm = this.vrm.humanoid.getNormalizedBoneNode('rightLowerArm');
+        if (rightLowerArm) {
+          const angle = Math.max(0, (bodyData.elbow.right.y - 0.3) * Math.PI * 2);
+          rightLowerArm.rotation.x = -angle;
+        }
+      }
+    }
+
+    // 手首
+    if (bodyData.wrist) {
+      if (bodyData.wrist.left) {
+        const leftHand = this.vrm.humanoid.getNormalizedBoneNode('leftHand');
+        if (leftHand) {
+          leftHand.rotation.y = (bodyData.wrist.left.x - 0.5) * Math.PI * 0.5;
+        }
+      }
+      if (bodyData.wrist.right) {
+        const rightHand = this.vrm.humanoid.getNormalizedBoneNode('rightHand');
+        if (rightHand) {
+          rightHand.rotation.y = (bodyData.wrist.right.x - 0.5) * Math.PI * 0.5;
+        }
+      }
+    }
+
+    // 腰
+    if (bodyData.hip) {
+      const hips = this.vrm.humanoid.getNormalizedBoneNode('hips');
+      if (hips) {
+        const avgY = ((bodyData.hip.left?.y || 0.5) + (bodyData.hip.right?.y || 0.5)) / 2;
+        hips.position.y = (avgY - 0.5) * 0.5;
+      }
+    }
+
+    // 膝
+    if (bodyData.knee) {
+      if (bodyData.knee.left) {
+        const leftLowerLeg = this.vrm.humanoid.getNormalizedBoneNode('leftLowerLeg');
+        if (leftLowerLeg) {
+          const angle = Math.max(0, (0.6 - bodyData.knee.left.y) * Math.PI);
+          leftLowerLeg.rotation.x = angle;
+        }
+      }
+      if (bodyData.knee.right) {
+        const rightLowerLeg = this.vrm.humanoid.getNormalizedBoneNode('rightLowerLeg');
+        if (rightLowerLeg) {
+          const angle = Math.max(0, (0.6 - bodyData.knee.right.y) * Math.PI);
+          rightLowerLeg.rotation.x = angle;
+        }
+      }
+    }
+
+    // 足首
+    if (bodyData.ankle) {
+      if (bodyData.ankle.left) {
+        const leftFoot = this.vrm.humanoid.getNormalizedBoneNode('leftFoot');
+        if (leftFoot) {
+          leftFoot.rotation.x = (bodyData.ankle.left.y - 0.9) * Math.PI;
+        }
+      }
+      if (bodyData.ankle.right) {
+        const rightFoot = this.vrm.humanoid.getNormalizedBoneNode('rightFoot');
+        if (rightFoot) {
+          rightFoot.rotation.x = (bodyData.ankle.right.y - 0.9) * Math.PI;
+        }
+      }
+    }
+  }
+
+  /**
    * 破棄処理
    */
   dispose() {

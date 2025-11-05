@@ -177,37 +177,45 @@ function broadcastToClients(data) {
 }
 
 // サーバー起動
+const OSC_PORT_BODY = 11574;
+
 server.listen(WS_PORT, () => {
   console.log(`
 ╔════════════════════════════════════════╗
-║  VRabater Gateway Server               ║
+║  VRabater Gateway Server (全身対応)    ║
 ╠════════════════════════════════════════╣
 ║  WebSocket: ws://localhost:${WS_PORT}      ║
-║  OSC Listen: 0.0.0.0:${OSC_PORT}            ║
+║  OSC Face:  0.0.0.0:${OSC_PORT}            ║
+║  OSC Body:  0.0.0.0:${OSC_PORT_BODY}       ║
 ╚════════════════════════════════════════╝
 
-⏳ OpenSeeFaceの起動を待機中...
-
-OpenSeeFaceを起動するには:
-  python facetracker.py -c 0 -W 640 -H 480 \\
-    --discard-after 0 --scan-every 0 --no-3d-adapt 1 \\
-    --ip 127.0.0.1 --port ${OSC_PORT}
+⏳ トラッキングシステムの起動を待機中...
   `);
 });
 
-// OSCサーバー起動
-oscServer.bind(OSC_PORT, '0.0.0.0', () => {
-  console.log('✅ OSCサーバー起動:', OSC_PORT);
+// OSCサーバー起動 (顔)
+oscServerFace.bind(OSC_PORT, '0.0.0.0', () => {
+  console.log('✅ 顔トラッキングOSC起動:', OSC_PORT);
+});
+
+// OSCサーバー起動 (体)
+oscServerBody.bind(OSC_PORT_BODY, '0.0.0.0', () => {
+  console.log('✅ 体トラッキングOSC起動:', OSC_PORT_BODY);
 });
 
 // エラーハンドリング
-oscServer.on('error', (error) => {
-  console.error('❌ OSCサーバーエラー:', error);
+oscServerFace.on('error', (error) => {
+  console.error('❌ 顔OSCエラー:', error);
+});
+
+oscServerBody.on('error', (error) => {
+  console.error('❌ 体OSCエラー:', error);
 });
 
 process.on('SIGINT', () => {
   console.log('\n🛑 Gateway停止中...');
-  oscServer.close();
+  oscServerFace.close();
+  oscServerBody.close();
   wss.close();
   process.exit(0);
 });
