@@ -83,6 +83,14 @@ export class UI {
       </div>
 
       <div class="ui-section" style="margin-bottom: 15px;">
+        <label class="ui-label">音声入力</label>
+        <button id="voice-input-btn" class="ui-button" style="width: 100%; padding: 12px; font-size: 16px;">
+          🎤 話しかける
+        </button>
+        <div id="voice-status" style="margin-top: 8px; font-size: 12px; opacity: 0.7; text-align: center;"></div>
+      </div>
+
+      <div class="ui-section" style="margin-bottom: 15px;">
         <label class="ui-label">ピッチ: <span id="pitch-value">+3.5</span> 半音</label>
         <input type="range" id="pitch-slider" min="-12" max="12" step="0.5" value="3.5" 
                style="width: 100%;" class="ui-slider">
@@ -242,6 +250,50 @@ export class UI {
       this.options.audioProcessor.enableVoiceChanger(this.isVoiceChangerEnabled);
     });
 
+    // 音声入力ボタン
+    const voiceInputBtn = document.getElementById('voice-input-btn');
+    const voiceStatus = document.getElementById('voice-status');
+    let isRecording = false;
+    let mediaRecorder: MediaRecorder | null = null;
+    let audioChunks: Blob[] = [];
+
+    voiceInputBtn?.addEventListener('click', async () => {
+      if (!isRecording) {
+        // 録音開始
+        try {
+          const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+          mediaRecorder = new MediaRecorder(stream);
+          audioChunks = [];
+
+          mediaRecorder.ondataavailable = (event) => {
+            audioChunks.push(event.data);
+          };
+
+          mediaRecorder.onstop = async () => {
+            const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
+            await this.sendVoiceToAI(audioBlob);
+            stream.getTracks().forEach(track => track.stop());
+          };
+
+          mediaRecorder.start();
+          isRecording = true;
+          voiceInputBtn.textContent = '⏹️ 停止';
+          voiceInputBtn.style.background = 'rgba(255, 100, 100, 0.3)';
+          if (voiceStatus) voiceStatus.textContent = '録音中...';
+        } catch (err) {
+          console.error('マイクアクセスエラー:', err);
+          if (voiceStatus) voiceStatus.textContent = 'マイクアクセス失敗';
+        }
+      } else {
+        // 録音停止
+        mediaRecorder?.stop();
+        isRecording = false;
+        voiceInputBtn.textContent = '🎤 話しかける';
+        voiceInputBtn.style.background = '';
+        if (voiceStatus) voiceStatus.textContent = '処理中...';
+      }
+    });
+
     // ピッチスライダー
     const pitchSlider = document.getElementById('pitch-slider') as HTMLInputElement;
     const pitchValue = document.getElementById('pitch-value');
@@ -292,6 +344,62 @@ export class UI {
           this.options.avatarSystem.setExpression(name, 0);
         });
       }, 2000);
+    }
+  }
+
+  private async sendVoiceToAI(audioBlob: Blob) {
+    const voiceStatus = document.getElementById('voice-status');
+    try {
+      // 音声をBase64に変換
+      const reader = new FileReader();
+      const base64Audio = await new Promise<string>((resolve) => {
+        reader.onloadend = () => {
+          const base64 = (reader.result as string).split(',')[1];
+          resolve(base64);
+        };
+        reader.readAsDataURL(audioBlob);
+      });
+
+      // AIサービスに送信
+      if (voiceStatus) voiceStatus.textContent = 'AI処理中...';
+      
+      const response = await fetch('http://localhost:5000/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          audio: base64Audio,
+          format: 'webm'
+        })
+      });
+
+      const result = await response.json();
+      
+      if (result.response) {
+        if (voiceStatus) voiceStatus.textContent = `応答: ${result.response}`;
+        
+        // 音声を再生
+        if (result.audio) {
+          const audioData = atob(result.audio);
+          const audioArray = new Uint8Array(audioData.length);
+          for (let i = 0; i < audioData.length; i++) {
+            audioArray[i] = audioData.charCodeAt(i);
+          }
+          const audioBlob = new Blob([audioArray], { type: `audio/${result.audio_format || 'mp3'}` });
+          const audioUrl = URL.createObjectURL(audioBlob);
+          const audio = new Audio(audioUrl);
+          audio.play();
+          
+          // 再生終了後にステータスをクリア
+          audio.onended = () => {
+            if (voiceStatus) voiceStatus.textContent = '';
+          };
+        }
+      } else {
+        if (voiceStatus) voiceStatus.textContent = 'エラー: 応答なし';
+      }
+    } catch (error) {
+      console.error('AI通信エラー:', error);
+      if (voiceStatus) voiceStatus.textContent = 'エラー: 通信失敗';
     }
   }
 
