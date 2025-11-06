@@ -78,7 +78,7 @@ export class AvatarSystem {
   }
 
   private setupLighting() {
-    // キーライト（白山の雪を反射した柔らかい光）
+    // Key light (soft light reflecting from snowy mountains)
     const keyLight = new THREE.DirectionalLight(THEME.colors.snowWhite, 2.0);
     keyLight.position.set(2, 3, 2);
     keyLight.castShadow = true;
@@ -86,17 +86,17 @@ export class AvatarSystem {
     keyLight.shadow.mapSize.height = 1024;
     this.scene.add(keyLight);
 
-    // フィルライト（手取川の碧を連想させる）
+    // Fill light (cyan reminiscent of Tedori River)
     const fillLight = new THREE.DirectionalLight(THEME.colors.riverCyan, 0.8);
     fillLight.position.set(-2, 1, -1);
     this.scene.add(fillLight);
 
-    // リムライト（玄武岩のシルエット強調）
+    // Rim light (emphasizing basalt silhouette)
     const rimLight = new THREE.DirectionalLight(THEME.colors.snowWhite, 1.0);
     rimLight.position.set(0, 1, -3);
     this.scene.add(rimLight);
 
-    // アンビエントライト（全体の底上げ）
+    // Ambient light (overall base lighting)
     const ambient = new THREE.AmbientLight(THEME.colors.snowWhite, 0.8);
     this.scene.add(ambient);
   }
@@ -107,7 +107,7 @@ export class AvatarSystem {
       const texture = await loader.loadAsync(path);
       texture.mapping = THREE.EquirectangularReflectionMapping;
       this.scene.environment = texture;
-      console.log('✅ HDRI環境マップ読み込み完了');
+      console.log('HDRI environment map loaded');
     } catch (error) {
       console.warn('⚠️ HDRI読み込み失敗、デフォルト環境を使用:', error);
       // フォールバック：シンプルな環境キューブ
