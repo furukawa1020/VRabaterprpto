@@ -158,12 +158,8 @@ export class AvatarSystem {
       );
       vrm.scene.scale.setScalar(CONFIG.avatar.scale);
       
-      // アバターを90度回転(左向き→前向き)
-      vrm.scene.rotation.y = Math.PI / 2; // 90度回転
-      console.log('✅ アバター回転設定:', {
-        y: vrm.scene.rotation.y,
-        degrees: (vrm.scene.rotation.y * 180 / Math.PI).toFixed(1) + '度'
-      });
+      // 回転はVRoidAvatar.tsで管理
+      console.log('✅ VRMモデル配置完了');
 
       // 影の設定
       vrm.scene.traverse((obj) => {
