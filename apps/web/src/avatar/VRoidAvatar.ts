@@ -42,7 +42,11 @@ export class VRoidAvatar {
       this.group.add(this.vrm.scene);
       
       // 初期回転を設定(正面向き)
-      this.group.rotation.y = -Math.PI / 2;
+      this.group.rotation.y = 0; // 0度(回転なし)
+      console.log('[VRoidAvatar] 🔄 回転設定:', {
+        y: this.group.rotation.y,
+        degrees: (this.group.rotation.y * 180 / Math.PI).toFixed(1) + '度'
+      });
       
       // アニメーションミキサー
       this.mixer = new THREE.AnimationMixer(this.vrm.scene);
@@ -79,7 +83,8 @@ export class VRoidAvatar {
     // ふわふわ揺れる(可愛い動き)
     const time = Date.now() * 0.001;
     this.group.position.y = Math.sin(time * 2) * 0.01;
-    this.group.rotation.z = Math.sin(time * 1.5) * 0.02;
+    // Y軸回転を保持しながらZ軸の揺れを適用
+    this.group.rotation.set(0, 0, Math.sin(time * 1.5) * 0.02);
   }
 
   /**

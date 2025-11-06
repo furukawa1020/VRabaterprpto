@@ -21,8 +21,9 @@ export class AvatarSystem {
   
   // アニメーション状態
   private idleTime = 0;
-  private blinkTimer = 0;
-  private nextBlinkTime = 3.0;
+  private blinkTime = 0;
+  private nextBlinkTime = 3;
+  private rotationLogged = false; // デバッグ用フラグ
   private isBlinking = false;
   private blinkStartTime = 0;
   
@@ -44,8 +45,8 @@ export class AvatarSystem {
     const container = document.getElementById('canvas-container')!;
     const aspect = container.clientWidth / container.clientHeight;
     this.camera = new THREE.PerspectiveCamera(45, aspect, 0.1, 20);
-    // アバターの右側から見る
-    this.camera.position.set(2.0, 0.8, 0);  
+    // 前方から見る(通常位置)
+    this.camera.position.set(0, 0.8, 2.0);  
     this.camera.lookAt(0, 0.7, 0); // アバターの顔を見る
 
     // レンダラーの初期化（PBR設定）
@@ -157,9 +158,12 @@ export class AvatarSystem {
       );
       vrm.scene.scale.setScalar(CONFIG.avatar.scale);
       
-      // アバターをカメラの方(右側+X)に向ける
-      vrm.scene.rotation.y = Math.PI / 2; // +90度回転(反時計回り)
-      console.log('✅ アバターを+90度回転 → カメラの方を向く');
+      // アバターを90度回転(左向き→前向き)
+      vrm.scene.rotation.y = Math.PI / 2; // 90度回転
+      console.log('✅ アバター回転設定:', {
+        y: vrm.scene.rotation.y,
+        degrees: (vrm.scene.rotation.y * 180 / Math.PI).toFixed(1) + '度'
+      });
 
       // 影の設定
       vrm.scene.traverse((obj) => {
@@ -344,8 +348,19 @@ export class AvatarSystem {
     const swayValue = Math.sin(swayPhase) * CONFIG.avatar.idle.swayAmplitude;
     
     if (this.vrm.scene) {
-      // Y軸+90度を保持しながらZ軸の揺れを適用
+      // Y軸90度を保持しながらZ軸の揺れを適用
       this.vrm.scene.rotation.set(0, Math.PI / 2, swayValue);
+      
+      // デバッグ: 1回だけログ出力
+      if (!this.rotationLogged) {
+        console.log('🔄 update()での回転:', {
+          x: this.vrm.scene.rotation.x,
+          y: this.vrm.scene.rotation.y,
+          z: this.vrm.scene.rotation.z,
+          yDegrees: (this.vrm.scene.rotation.y * 180 / Math.PI).toFixed(1) + '度'
+        });
+        this.rotationLogged = true;
+      }
     }
   }
 
