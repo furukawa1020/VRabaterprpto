@@ -26,6 +26,7 @@ export class AvatarSystem {
   private rotationLogged = false; // デバッグ用フラグ
   private isBlinking = false;
   private blinkStartTime = 0;
+  private hasBodyTracking = false; // ボディトラッキング有効フラグ
   
   // 表情状態（スムージング用）
   private currentExpression = {
@@ -274,6 +275,7 @@ export class AvatarSystem {
 
     // 体のトラッキング適用
     if (data.body) {
+      this.hasBodyTracking = true;
       this.applyBodyTracking(data.body);
     }
   }
@@ -472,8 +474,8 @@ export class AvatarSystem {
         this.proceduralAvatar.update(deltaTime);
       }
 
-      // VRMの更新
-      if (this.vrm) {
+      // VRMの更新（ボディトラッキング時はスキップ）
+      if (this.vrm && !this.hasBodyTracking) {
         this.vrm.update(deltaTime);
       }
 
