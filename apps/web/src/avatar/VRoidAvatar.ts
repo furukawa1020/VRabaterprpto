@@ -42,7 +42,7 @@ export class VRoidAvatar {
       this.group.add(this.vrm.scene);
       
       // 初期回転を設定(正面向き)
-      this.group.rotation.y = 0; // 0度(回転なし)
+      this.group.rotation.y = -Math.PI / 2; // -90度(右向き→前向き)
       console.log('[VRoidAvatar] 🔄 回転設定:', {
         y: this.group.rotation.y,
         degrees: (this.group.rotation.y * 180 / Math.PI).toFixed(1) + '度'
@@ -84,7 +84,7 @@ export class VRoidAvatar {
     const time = Date.now() * 0.001;
     this.group.position.y = Math.sin(time * 2) * 0.01;
     // Y軸回転を保持しながらZ軸の揺れを適用
-    this.group.rotation.set(0, 0, Math.sin(time * 1.5) * 0.02);
+    this.group.rotation.set(0, -Math.PI / 2, Math.sin(time * 1.5) * 0.02);
   }
 
   /**
