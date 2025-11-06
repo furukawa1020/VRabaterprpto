@@ -32,6 +32,16 @@ export interface TrackingData {
   
   // 信頼度
   confidence?: number;    // 0-1
+
+  // 体のトラッキング
+  body?: {
+    shoulder?: { left?: { x: number; y: number; z: number }; right?: { x: number; y: number; z: number } };
+    elbow?: { left?: { x: number; y: number; z: number }; right?: { x: number; y: number; z: number } };
+    wrist?: { left?: { x: number; y: number; z: number }; right?: { x: number; y: number; z: number } };
+    hip?: { left?: { x: number; y: number; z: number }; right?: { x: number; y: number; z: number } };
+    knee?: { left?: { x: number; y: number; z: number }; right?: { x: number; y: number; z: number } };
+    ankle?: { left?: { x: number; y: number; z: number }; right?: { x: number; y: number; z: number } };
+  };
 }
 
 export interface TrackingConfig {

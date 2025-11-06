@@ -32,6 +32,16 @@ export class TrackingClient {
         this.ws.onmessage = (event) => {
           try {
             const data = JSON.parse(event.data) as TrackingData;
+            
+            // デバッグログ（body データの受信確認）
+            if (data.body?.shoulder?.left) {
+              console.log('[TrackingClient] 📥 Body data:', {
+                leftShoulderX: data.body.shoulder.left.x.toFixed(2),
+                rightShoulderX: data.body.shoulder.right?.x.toFixed(2),
+                timestamp: data.timestamp
+              });
+            }
+            
             this.emit('tracking-data', data);
           } catch (error) {
             console.error('トラッキングデータのパースエラー:', error);

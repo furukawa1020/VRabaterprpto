@@ -271,6 +271,11 @@ export class AvatarSystem {
         );
       }
     }
+
+    // 体のトラッキング適用
+    if (data.body) {
+      this.applyBodyTracking(data.body);
+    }
   }
   
   /**
@@ -315,6 +320,56 @@ export class AvatarSystem {
     // 🦴 全身トラッキング (体データがあれば適用)
     if ((data as any).body) {
       this.proceduralAvatar.applyFullBodyTracking((data as any).body);
+    }
+  }
+
+  /**
+   * 体のトラッキングデータを適用
+   */
+  private applyBodyTracking(body: any) {
+    if (!this.vrm) return;
+    if (!body) return;
+
+    const humanoid = this.vrm.humanoid;
+    if (!humanoid) return;
+
+    // 各関節のマッピング
+    const jointMap: Record<string, string> = {
+      shoulder: 'Shoulder',
+      elbow: 'LowerArm',
+      wrist: 'Hand',
+      hip: 'UpperLeg',
+      knee: 'LowerLeg',
+      ankle: 'Foot'
+    };
+
+    for (const [jointKey, boneName] of Object.entries(jointMap)) {
+      const jointData = body[jointKey];
+      if (!jointData) continue;
+
+      // 左右それぞれ処理
+      for (const side of ['left', 'right']) {
+        const sideData = jointData[side];
+        if (!sideData) continue;
+
+        const x = sideData.x ?? 0;
+        const y = sideData.y ?? 0;
+        const z = sideData.z ?? 0;
+
+        // VRMのボーン名（例: leftShoulder, rightShoulder）
+        const vrmBoneName = side === 'left' ? `left${boneName}` : `right${boneName}`;
+        const bone = humanoid.getRawBoneNode(vrmBoneName as any);
+        
+        if (bone) {
+          // 座標から回転を計算（簡易版）
+          // y座標を上下の回転に、x座標を左右の回転に、z座標を前後の回転にマッピング
+          const rx = (y - 1.5) * 0.8;  // ピッチ（上下）
+          const ry = (x - 0.5) * 1.5;  // ヨー（左右）
+          const rz = z * 0.6;          // ロール（捻り）
+
+          bone.rotation.set(rx, ry, rz);
+        }
+      }
     }
   }
 
