@@ -222,6 +222,13 @@ export class AvatarSystem {
     
     if (!this.vrm) return;
 
+    // 体のトラッキング適用（最優先）
+    if (data.body) {
+      this.hasBodyTracking = true;
+      this.applyBodyTracking(data.body);
+      return; // ボディトラッキング時は顔のトラッキングをスキップ
+    }
+
     const proxy = this.vrm.expressionManager;
     if (!proxy) return;
 
@@ -271,12 +278,6 @@ export class AvatarSystem {
           data.headRotation.z * 0.5  // ロール
         );
       }
-    }
-
-    // 体のトラッキング適用
-    if (data.body) {
-      this.hasBodyTracking = true;
-      this.applyBodyTracking(data.body);
     }
   }
   
@@ -363,10 +364,11 @@ export class AvatarSystem {
         const bone = humanoid.getRawBoneNode(vrmBoneName as any);
         
         if (bone) {
-          // MediaPipe座標を小さな回転に変換(自然な動きのため係数を小さく)
-          const rx = (y - 0.5) * 0.5;  // X軸回転を控えめに
-          const ry = (x - 0.5) * 0.5;  // Y軸回転を控えめに  
-          const rz = (z - 0.5) * 0.3;  // Z軸回転を控えめに
+          // MediaPipe座標を小さな回転に変換
+          // 座標系を反転・調整して自然な動きに
+          const rx = -(y - 0.5) * 0.3;  // 上下を反転
+          const ry = (x - 0.5) * 0.3;   // 左右はそのまま
+          const rz = -(z - 0.5) * 0.2;  // 前後を反転
 
           bone.rotation.set(rx, ry, rz);
           bone.updateMatrix();
