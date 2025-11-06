@@ -344,8 +344,8 @@ export class AvatarSystem {
     const swayValue = Math.sin(swayPhase) * CONFIG.avatar.idle.swayAmplitude;
     
     if (this.vrm.scene) {
-      // Y軸-90度(正面向き)を保持しながらZ軸の揺れを適用
-      this.vrm.scene.rotation.set(0, -Math.PI / 2, swayValue);
+      // Y軸0度(回転なし)を試す
+      this.vrm.scene.rotation.set(0, 0, swayValue);
       
       // デバッグ: 1回だけログ出力
       if (!this.rotationLogged) {
