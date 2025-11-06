@@ -336,40 +336,168 @@ export class AvatarSystem {
     const humanoid = this.vrm.humanoid;
     if (!humanoid) return;
 
-    // 各関節のマッピング
-    const jointMap: Record<string, string> = {
-      shoulder: 'Shoulder',
-      elbow: 'LowerArm',
-      wrist: 'Hand',
-      hip: 'UpperLeg',
-      knee: 'LowerLeg',
-      ankle: 'Foot'
-    };
-
-    for (const [jointKey, boneName] of Object.entries(jointMap)) {
-      const jointData = body[jointKey];
-      if (!jointData) continue;
-
-      // 左右それぞれ処理
-      for (const side of ['left', 'right']) {
-        const sideData = jointData[side];
-        if (!sideData) continue;
-
-        const x = sideData.x ?? 0;
-        const y = sideData.y ?? 0;
-        const z = sideData.z ?? 0;
-
-        // VRMのボーン名(例: leftShoulder, rightShoulder)
-        const vrmBoneName = side === 'left' ? `left${boneName}` : `right${boneName}`;
-        const bone = humanoid.getRawBoneNode(vrmBoneName as any);
-        
+    // 非常にシンプルなアプローチ: MediaPipeの生座標を直接使う
+    // MediaPipe: x(0-1 左→右), y(0-1 上→下), z(0-1 奥→手前)
+    
+    // 肩の回転(腕の動き)
+    if (body.shoulder && body.elbow) {
+      // 左肩
+      if (body.shoulder.left && body.elbow.left) {
+        const s = body.shoulder.left;
+        const e = body.elbow.left;
+        const bone = humanoid.getRawBoneNode('leftUpperArm' as any);
         if (bone) {
-          // MediaPipe座標を回転に変換(係数を大きくして動きを明確に)
-          const rx = -(y - 0.5) * 2.0;  // 上下の動き
-          const ry = (x - 0.5) * 2.0;   // 左右の動き
-          const rz = -(z - 0.5) * 1.5;  // 前後の動き
+          // 腕を下げた状態を基準(0,0,0)として、そこからの変化を適用
+          const dy = (e.y - s.y) * 3;  // 上下: 大きい=下、小さい=上
+          const dx = (e.x - s.x) * 3;  // 左右: 大きい=右、小さい=左
+          const dz = (e.z - s.z) * 2;  // 前後: 大きい=手前、小さい=奥
+          
+          bone.rotation.x = dy;      // 腕を上下に動かす
+          bone.rotation.y = -dz;     // 腕を前後に動かす(Y軸回転)
+          bone.rotation.z = -dx;     // 腕を左右に動かす
+          bone.updateMatrix();
+        }
+      }
+      
+      // 右肩
+      if (body.shoulder.right && body.elbow.right) {
+        const s = body.shoulder.right;
+        const e = body.elbow.right;
+        const bone = humanoid.getRawBoneNode('rightUpperArm' as any);
+        if (bone) {
+          const dy = (e.y - s.y) * 3;
+          const dx = (e.x - s.x) * 3;
+          const dz = (e.z - s.z) * 2;
+          
+          bone.rotation.x = dy;
+          bone.rotation.y = -dz;
+          bone.rotation.z = -dx;
+          bone.updateMatrix();
+        }
+      }
+    }
 
-          bone.rotation.set(rx, ry, rz);
+    // 肘の回転(前腕の動き)
+    if (body.elbow && body.wrist) {
+      // 左肘
+      if (body.elbow.left && body.wrist.left) {
+        const e = body.elbow.left;
+        const w = body.wrist.left;
+        const bone = humanoid.getRawBoneNode('leftLowerArm' as any);
+        if (bone) {
+          const dy = (w.y - e.y) * 2;
+          const dx = (w.x - e.x) * 2;
+          const dz = (w.z - e.z) * 1.5;
+          
+          bone.rotation.x = dy;
+          bone.rotation.y = -dz;
+          bone.rotation.z = -dx;
+          bone.updateMatrix();
+        }
+      }
+      
+      // 右肘
+      if (body.elbow.right && body.wrist.right) {
+        const e = body.elbow.right;
+        const w = body.wrist.right;
+        const bone = humanoid.getRawBoneNode('rightLowerArm' as any);
+        if (bone) {
+          const dy = (w.y - e.y) * 2;
+          const dx = (w.x - e.x) * 2;
+          const dz = (w.z - e.z) * 1.5;
+          
+          bone.rotation.x = dy;
+          bone.rotation.y = -dz;
+          bone.rotation.z = -dx;
+          bone.updateMatrix();
+        }
+      }
+    }
+
+    // 手首の回転(手の動き)
+    if (body.wrist) {
+      // 左手首
+      if (body.wrist.left) {
+        const w = body.wrist.left;
+        const handBone = humanoid.getRawBoneNode('leftHand' as any);
+        if (handBone) {
+          // 手首の傾きを適用(簡易版)
+          handBone.rotation.x = (w.y - 0.5) * 0.5;  // 上下の傾き
+          handBone.rotation.z = -(w.x - 0.5) * 0.5; // 左右の傾き
+          handBone.updateMatrix();
+        }
+      }
+      
+      // 右手首
+      if (body.wrist.right) {
+        const w = body.wrist.right;
+        const handBone = humanoid.getRawBoneNode('rightHand' as any);
+        if (handBone) {
+          handBone.rotation.x = (w.y - 0.5) * 0.5;
+          handBone.rotation.z = -(w.x - 0.5) * 0.5;
+          handBone.updateMatrix();
+        }
+      }
+    }
+
+    // 股関節の回転(足の動き)
+    if (body.hip && body.knee) {
+      // 左股関節
+      if (body.hip.left && body.knee.left) {
+        const h = body.hip.left;
+        const k = body.knee.left;
+        const bone = humanoid.getRawBoneNode('leftUpperLeg' as any);
+        if (bone) {
+          const dy = (k.y - h.y) * 2;
+          const dx = (k.x - h.x) * 2;
+          
+          bone.rotation.x = dy - 1.5; // 立ち姿勢を基準に調整
+          bone.rotation.z = -dx;
+          bone.updateMatrix();
+        }
+      }
+      
+      // 右股関節
+      if (body.hip.right && body.knee.right) {
+        const h = body.hip.right;
+        const k = body.knee.right;
+        const bone = humanoid.getRawBoneNode('rightUpperLeg' as any);
+        if (bone) {
+          const dy = (k.y - h.y) * 2;
+          const dx = (k.x - h.x) * 2;
+          
+          bone.rotation.x = dy - 1.5;
+          bone.rotation.z = -dx;
+          bone.updateMatrix();
+        }
+      }
+    }
+
+    // 膝の回転(すねの動き)
+    if (body.knee && body.ankle) {
+      // 左膝
+      if (body.knee.left && body.ankle.left) {
+        const k = body.knee.left;
+        const a = body.ankle.left;
+        const bone = humanoid.getRawBoneNode('leftLowerLeg' as any);
+        if (bone) {
+          const dy = (a.y - k.y) * 2;
+          
+          // 膝は基本的に前方にしか曲がらない
+          bone.rotation.x = Math.max(0, dy - 1.0);
+          bone.updateMatrix();
+        }
+      }
+      
+      // 右膝
+      if (body.knee.right && body.ankle.right) {
+        const k = body.knee.right;
+        const a = body.ankle.right;
+        const bone = humanoid.getRawBoneNode('rightLowerLeg' as any);
+        if (bone) {
+          const dy = (a.y - k.y) * 2;
+          
+          bone.rotation.x = Math.max(0, dy - 1.0);
           bone.updateMatrix();
         }
       }
