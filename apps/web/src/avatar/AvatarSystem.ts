@@ -364,11 +364,10 @@ export class AvatarSystem {
         const bone = humanoid.getRawBoneNode(vrmBoneName as any);
         
         if (bone) {
-          // MediaPipe座標を小さな回転に変換
-          // 座標系を反転・調整して自然な動きに
-          const rx = -(y - 0.5) * 0.3;  // 上下を反転
-          const ry = (x - 0.5) * 0.3;   // 左右はそのまま
-          const rz = -(z - 0.5) * 0.2;  // 前後を反転
+          // MediaPipe座標を回転に変換(係数を大きくして動きを明確に)
+          const rx = -(y - 0.5) * 2.0;  // 上下の動き
+          const ry = (x - 0.5) * 2.0;   // 左右の動き
+          const rz = -(z - 0.5) * 1.5;  // 前後の動き
 
           bone.rotation.set(rx, ry, rz);
           bone.updateMatrix();
