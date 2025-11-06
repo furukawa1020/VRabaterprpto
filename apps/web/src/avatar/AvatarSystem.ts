@@ -335,8 +335,6 @@ export class AvatarSystem {
     const humanoid = this.vrm.humanoid;
     if (!humanoid) return;
 
-    console.log('🔍 applyBodyTracking called!', Object.keys(body));
-
     // 各関節のマッピング
     const jointMap: Record<string, string> = {
       shoulder: 'Shoulder',
@@ -364,20 +362,14 @@ export class AvatarSystem {
         const vrmBoneName = side === 'left' ? `left${boneName}` : `right${boneName}`;
         const bone = humanoid.getRawBoneNode(vrmBoneName as any);
         
-        console.log(`🦴 Bone check: ${vrmBoneName} -> ${bone ? '✅ Found' : '❌ Not found'}`);
-        
         if (bone) {
-          // MediaPipe座標(0-1の正規化座標)をそのまま角度に変換
-          // より大きな係数でテスト
-          const rx = (y - 0.5) * Math.PI;     // X軸回転(ピッチ)
-          const ry = (x - 0.5) * Math.PI;     // Y軸回転(ヨー)
-          const rz = (z - 0.5) * Math.PI * 0.5; // Z軸回転(ロール)
+          // MediaPipe座標を小さな回転に変換(自然な動きのため係数を小さく)
+          const rx = (y - 0.5) * 0.5;  // X軸回転を控えめに
+          const ry = (x - 0.5) * 0.5;  // Y軸回転を控えめに  
+          const rz = (z - 0.5) * 0.3;  // Z軸回転を控えめに
 
-          // Quaternionを使って回転を設定(より正確)
           bone.rotation.set(rx, ry, rz);
           bone.updateMatrix();
-          
-          console.log(`🎯 Rotation applied to ${vrmBoneName}:`, { rx: rx.toFixed(2), ry: ry.toFixed(2), rz: rz.toFixed(2) });
         }
       }
     }
