@@ -3,6 +3,18 @@ MediaPipe Body Tracking
 Full body pose detection with camera
 """
 
+import os
+import sys
+
+# Fix MediaPipe path issue with Japanese characters
+# Convert path separators to forward slashes
+venv_path = os.path.dirname(sys.executable)
+site_packages = os.path.join(venv_path, 'Lib', 'site-packages')
+mediapipe_path = os.path.join(site_packages, 'mediapipe')
+
+# Set environment variable for MediaPipe
+os.environ['MEDIAPIPE_DISABLE_GPU'] = '1'
+
 import cv2
 import mediapipe as mp
 import threading

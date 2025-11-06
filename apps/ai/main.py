@@ -286,11 +286,17 @@ if __name__ == '__main__':
         print("   起動方法: ollama serve")
     
     # Body Tracker初期化 & 起動
-    body_tracker = BodyTracker()
-    if body_tracker.start():
-        print("✅ Body Tracking 起動完了")
-    else:
-        print("⚠️ Body Tracking 起動失敗")
+    print("🎥 Body Tracking 初期化中...")
+    try:
+        body_tracker = BodyTracker()
+        if body_tracker.start():
+            print("✅ Body Tracking 起動完了")
+        else:
+            print("⚠️ Body Tracking 起動失敗 (カメラ接続エラー)")
+            body_tracker = None
+    except Exception as e:
+        print(f"⚠️ Body Tracking エラー: {e}")
+        body_tracker = None
     
     # Flask起動
     print("\n🚀 AIサービス起動: http://localhost:5000\n")
