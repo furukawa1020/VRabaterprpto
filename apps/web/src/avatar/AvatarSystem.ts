@@ -336,30 +336,55 @@ export class AvatarSystem {
     const humanoid = this.vrm.humanoid;
     if (!humanoid) return;
 
-    // 非常にシンプルなアプローチ: MediaPipeの生座標を直接使う
-    // MediaPipe: x(0-1 左→右), y(0-1 上→下), z(0-1 奥→手前)
+    // 上半身のみか全身かを判定（足が見えているか）
+    const hasLowerBody = body.hip && body.knee && (body.hip.left || body.hip.right);
     
-    // 肩の回転(腕の動き)
+    // 上半身のみの場合、座っているポーズに（アバター全体を下に移動）
+    if (!hasLowerBody) {
+      // アバター全体を下げて座っているように見せる
+      this.vrm.scene.position.y = -0.6;  // 腰を下げる
+      this.camera.position.set(0, 1.0, 1.8);  // 上半身を正面から
+      this.camera.lookAt(0, 0.9, 0);
+    } else {
+      // 通常の立ち姿勢
+      this.vrm.scene.position.y = 0;
+      this.camera.position.set(0, 1.0, 2.5);  // 全身を上から見下ろす角度
+      this.camera.lookAt(0, 0.9, 0);
+    }
+
+    // MediaPipe: x(0-1 左→右), y(0-1 上→下), z(0-1 奥→手前)
+    // Z軸の改善: 肩の中心からのZ距離を基準にして、体貫通を防ぐ
+    
+    // 肩の中心位置を計算（基準点として使用）
+    let shoulderCenterZ = 0;
+    if (body.shoulder && body.shoulder.left && body.shoulder.right) {
+      shoulderCenterZ = (body.shoulder.left.z + body.shoulder.right.z) / 2;
+    }
+    
+    // 信頼度のしきい値（0.1以下は無視、上半身は高く下半身は低くなりがち）
+    const VISIBILITY_THRESHOLD = 0.1;
+    
+    // 肩の回転(腕の動き) - Z軸を肩基準の相対値に
     if (body.shoulder && body.elbow) {
-      // 左肩
+      // 左肩 - visibilityに応じて補間で回転を適用
       if (body.shoulder.left && body.elbow.left) {
         const s = body.shoulder.left;
         const e = body.elbow.left;
         const bone = humanoid.getRawBoneNode('leftUpperArm' as any);
         if (bone) {
-          // 腕を下げた状態を基準(0,0,0)として、そこからの変化を適用
-          const dy = (e.y - s.y) * 3;  // 上下: 大きい=下、小さい=上
-          const dx = (e.x - s.x) * 3;  // 左右: 大きい=右、小さい=左
-          const dz = (e.z - s.z) * 2;  // 前後: 大きい=手前、小さい=奥
-          
-          bone.rotation.x = dy;      // 腕を上下に動かす
-          bone.rotation.y = -dz;     // 腕を前後に動かす(Y軸回転)
-          bone.rotation.z = -dx;     // 腕を左右に動かす
-          bone.updateMatrix();
+          const dy = (e.y - s.y) * 3;  // 上下
+          const dx = (e.x - s.x) * 3;  // 左右
+          const dz = (e.z - shoulderCenterZ) * 4;  // 前後
+          const visible = (s.visibility > VISIBILITY_THRESHOLD && e.visibility > VISIBILITY_THRESHOLD);
+          const targetX = visible ? dy : 0;
+          const targetY = visible ? -dz : 0;
+          const targetZ = visible ? -dx : 0;
+          const smoothing = visible ? 0.5 : 0.12; // 動いているときは早めに追従、見えないときはゆっくり戻る
+          this.smoothBoneRotation(bone, targetX, targetY, targetZ, smoothing);
         }
       }
       
-      // 右肩
+      // 右肩 - 信頼度チェック
       if (body.shoulder.right && body.elbow.right) {
         const s = body.shoulder.right;
         const e = body.elbow.right;
@@ -367,83 +392,118 @@ export class AvatarSystem {
         if (bone) {
           const dy = (e.y - s.y) * 3;
           const dx = (e.x - s.x) * 3;
-          const dz = (e.z - s.z) * 2;
-          
-          bone.rotation.x = dy;
-          bone.rotation.y = -dz;
-          bone.rotation.z = -dx;
-          bone.updateMatrix();
+          const dz = (e.z - shoulderCenterZ) * 4;
+          const visible = (s.visibility > VISIBILITY_THRESHOLD && e.visibility > VISIBILITY_THRESHOLD);
+          const targetX = visible ? dy : 0;
+          const targetY = visible ? -dz : 0;
+          const targetZ = visible ? -dx : 0;
+          const smoothing = visible ? 0.5 : 0.12;
+          this.smoothBoneRotation(bone, targetX, targetY, targetZ, smoothing);
         }
       }
     }
 
-    // 肘の回転(前腕の動き)
+    // 肘の回転(前腕の動き) - 肘基準で手首の相対位置
     if (body.elbow && body.wrist) {
-      // 左肘
+      // 左肘 - visibilityに応じて補間で回転を適用
       if (body.elbow.left && body.wrist.left) {
         const e = body.elbow.left;
         const w = body.wrist.left;
         const bone = humanoid.getRawBoneNode('leftLowerArm' as any);
         if (bone) {
-          const dy = (w.y - e.y) * 2;
-          const dx = (w.x - e.x) * 2;
-          const dz = (w.z - e.z) * 1.5;
-          
-          bone.rotation.x = dy;
-          bone.rotation.y = -dz;
-          bone.rotation.z = -dx;
-          bone.updateMatrix();
+          const dy = (w.y - e.y) * 2.5;
+          const dx = (w.x - e.x) * 2.5;
+          const dz = (w.z - e.z) * 3;
+          const visible = (e.visibility > VISIBILITY_THRESHOLD && w.visibility > VISIBILITY_THRESHOLD);
+          const targetX = visible ? dy : 0;
+          const targetY = visible ? -dz : 0;
+          const targetZ = visible ? -dx : 0;
+          const smoothing = visible ? 0.45 : 0.12;
+          this.smoothBoneRotation(bone, targetX, targetY, targetZ, smoothing);
         }
       }
       
-      // 右肘
+      // 右肘 - visibilityに応じて補間で回転を適用
       if (body.elbow.right && body.wrist.right) {
         const e = body.elbow.right;
         const w = body.wrist.right;
         const bone = humanoid.getRawBoneNode('rightLowerArm' as any);
         if (bone) {
-          const dy = (w.y - e.y) * 2;
-          const dx = (w.x - e.x) * 2;
-          const dz = (w.z - e.z) * 1.5;
-          
-          bone.rotation.x = dy;
-          bone.rotation.y = -dz;
-          bone.rotation.z = -dx;
-          bone.updateMatrix();
+          const dy = (w.y - e.y) * 2.5;
+          const dx = (w.x - e.x) * 2.5;
+          const dz = (w.z - e.z) * 3;
+          const visible = (e.visibility > VISIBILITY_THRESHOLD && w.visibility > VISIBILITY_THRESHOLD);
+          const targetX = visible ? dy : 0;
+          const targetY = visible ? -dz : 0;
+          const targetZ = visible ? -dx : 0;
+          const smoothing = visible ? 0.45 : 0.12;
+          this.smoothBoneRotation(bone, targetX, targetY, targetZ, smoothing);
         }
       }
     }
 
     // 手首の回転(手の動き)
     if (body.wrist) {
-      // 左手首
+      // 左手首 - visibilityに応じて補間で回転を適用
       if (body.wrist.left) {
         const w = body.wrist.left;
         const handBone = humanoid.getRawBoneNode('leftHand' as any);
         if (handBone) {
-          // 手首の傾きを適用(簡易版)
-          handBone.rotation.x = (w.y - 0.5) * 0.5;  // 上下の傾き
-          handBone.rotation.z = -(w.x - 0.5) * 0.5; // 左右の傾き
-          handBone.updateMatrix();
+          const tx = (w.y - 0.5) * 0.5; // 上下傾き(簡易)
+          const tz = -(w.x - 0.5) * 0.5; // 左右傾き
+          const visible = (w.visibility > VISIBILITY_THRESHOLD);
+          const smoothing = visible ? 0.4 : 0.12;
+          this.smoothBoneRotation(handBone, tx, 0, tz, smoothing);
         }
       }
       
-      // 右手首
+      // 右手首 - visibilityに応じて補間で回転を適用
       if (body.wrist.right) {
         const w = body.wrist.right;
         const handBone = humanoid.getRawBoneNode('rightHand' as any);
         if (handBone) {
-          handBone.rotation.x = (w.y - 0.5) * 0.5;
-          handBone.rotation.z = -(w.x - 0.5) * 0.5;
-          handBone.updateMatrix();
+          const tx = (w.y - 0.5) * 0.5;
+          const tz = -(w.x - 0.5) * 0.5;
+          const visible = (w.visibility > VISIBILITY_THRESHOLD);
+          const smoothing = visible ? 0.4 : 0.12;
+          this.smoothBoneRotation(handBone, tx, 0, tz, smoothing);
         }
+      }
+    }
+    
+    // 表情トラッキング（顔のランドマークがある場合のみ）
+    if (body.face && this.vrm.expressionManager) {
+      const proxy = this.vrm.expressionManager;
+      
+      // 口の開き具合
+      if (body.face.mouthOpen !== undefined) {
+        const mouthValue = Math.max(0, Math.min(1, body.face.mouthOpen));
+        proxy.setValue('aa', mouthValue);
+      }
+      
+      // 笑顔
+      if (body.face.smile !== undefined) {
+        const smileValue = Math.max(0, Math.min(1, body.face.smile));
+        proxy.setValue('joy', smileValue);
+      }
+      
+      // まばたき
+      if (body.face.eyeBlinkLeft !== undefined) {
+        const blinkValue = Math.max(0, Math.min(1, body.face.eyeBlinkLeft));
+        proxy.setValue('blinkLeft', blinkValue);
+      }
+      if (body.face.eyeBlinkRight !== undefined) {
+        const blinkValue = Math.max(0, Math.min(1, body.face.eyeBlinkRight));
+        proxy.setValue('blinkRight', blinkValue);
       }
     }
 
     // 股関節の回転(足の動き)
     if (body.hip && body.knee) {
-      // 左股関節
-      if (body.hip.left && body.knee.left) {
+      // 左股関節 - 信頼度チェック
+      if (body.hip.left && body.knee.left && 
+          body.hip.left.visibility > VISIBILITY_THRESHOLD && 
+          body.knee.left.visibility > VISIBILITY_THRESHOLD) {
         const h = body.hip.left;
         const k = body.knee.left;
         const bone = humanoid.getRawBoneNode('leftUpperLeg' as any);
@@ -457,8 +517,10 @@ export class AvatarSystem {
         }
       }
       
-      // 右股関節
-      if (body.hip.right && body.knee.right) {
+      // 右股関節 - 信頼度チェック
+      if (body.hip.right && body.knee.right && 
+          body.hip.right.visibility > VISIBILITY_THRESHOLD && 
+          body.knee.right.visibility > VISIBILITY_THRESHOLD) {
         const h = body.hip.right;
         const k = body.knee.right;
         const bone = humanoid.getRawBoneNode('rightUpperLeg' as any);
@@ -475,8 +537,10 @@ export class AvatarSystem {
 
     // 膝の回転(すねの動き)
     if (body.knee && body.ankle) {
-      // 左膝
-      if (body.knee.left && body.ankle.left) {
+      // 左膝 - 信頼度チェック
+      if (body.knee.left && body.ankle.left && 
+          body.knee.left.visibility > VISIBILITY_THRESHOLD && 
+          body.ankle.left.visibility > VISIBILITY_THRESHOLD) {
         const k = body.knee.left;
         const a = body.ankle.left;
         const bone = humanoid.getRawBoneNode('leftLowerLeg' as any);
@@ -489,8 +553,10 @@ export class AvatarSystem {
         }
       }
       
-      // 右膝
-      if (body.knee.right && body.ankle.right) {
+      // 右膝 - 信頼度チェック
+      if (body.knee.right && body.ankle.right && 
+          body.knee.right.visibility > VISIBILITY_THRESHOLD && 
+          body.ankle.right.visibility > VISIBILITY_THRESHOLD) {
         const k = body.knee.right;
         const a = body.ankle.right;
         const bone = humanoid.getRawBoneNode('rightLowerLeg' as any);
@@ -548,6 +614,11 @@ export class AvatarSystem {
 
   private updateBlinking(deltaTime: number) {
     if (!this.vrm?.expressionManager) return;
+    
+    // ボディトラッキング中は自動まばたきをオフ（表情トラッキングを優先）
+    if (this.hasBodyTracking) {
+      return;
+    }
 
     const proxy = this.vrm.expressionManager;
 
@@ -568,20 +639,33 @@ export class AvatarSystem {
         
         // 次のまばたきタイミングを設定
         const { min, max } = CONFIG.avatar.expression.blinkInterval;
-        this.nextBlinkTime = this.blinkTimer + min + Math.random() * (max - min);
+        this.nextBlinkTime = this.blinkTime + min + Math.random() * (max - min);
       }
     } else {
       // 次のまばたきまで待機
-      this.blinkTimer += deltaTime;
+      this.blinkTime += deltaTime;
       
-      if (this.blinkTimer >= this.nextBlinkTime) {
+      if (this.blinkTime >= this.nextBlinkTime) {
         this.isBlinking = true;
         this.blinkStartTime = this.clock.getElapsedTime();
-        this.blinkTimer = 0;
+        this.blinkTime = 0;
       }
     }
 
     proxy.setValue('blink', this.currentExpression.blink);
+  }
+
+  // Smoothly interpolate bone rotation and clamp to sane ranges to avoid wild flips
+  private smoothBoneRotation(bone: any, targetX: number, targetY: number, targetZ: number, smoothing: number) {
+    // clamp targets to prevent extreme rotations
+    const tx = THREE.MathUtils.clamp(targetX, -1.2, 1.2);
+    const ty = THREE.MathUtils.clamp(targetY, -1.2, 1.2);
+    const tz = THREE.MathUtils.clamp(targetZ, -1.2, 1.2);
+
+    bone.rotation.x = THREE.MathUtils.lerp(bone.rotation.x, tx, smoothing);
+    bone.rotation.y = THREE.MathUtils.lerp(bone.rotation.y, ty, smoothing);
+    bone.rotation.z = THREE.MathUtils.lerp(bone.rotation.z, tz, smoothing);
+    bone.updateMatrix();
   }
 
   startAnimation() {

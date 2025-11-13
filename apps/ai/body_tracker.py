@@ -25,6 +25,7 @@ class BodyTracker:
     def __init__(self, osc_host="127.0.0.1", osc_port=11574):
         # MediaPipe setup
         self.mp_pose = mp.solutions.pose
+        self.mp_face_mesh = mp.solutions.face_mesh
         self.mp_drawing = mp.solutions.drawing_utils
         
         # Create Pose with simpler parameters
@@ -34,6 +35,14 @@ class BodyTracker:
             smooth_landmarks=True,
             enable_segmentation=False,
             smooth_segmentation=False,
+            min_detection_confidence=0.5,
+            min_tracking_confidence=0.5
+        )
+        
+        # Create FaceMesh for expression tracking
+        self.face_mesh = self.mp_face_mesh.FaceMesh(
+            max_num_faces=1,
+            refine_landmarks=True,
             min_detection_confidence=0.5,
             min_tracking_confidence=0.5
         )
@@ -93,19 +102,26 @@ class BodyTracker:
             # Convert to RGB
             rgb_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
             
-            # Process with MediaPipe
-            results = self.pose.process(rgb_frame)
+            # Process with MediaPipe Pose
+            results_pose = self.pose.process(rgb_frame)
+            
+            # Process with MediaPipe FaceMesh
+            results_face = self.face_mesh.process(rgb_frame)
             
             # Send OSC data
-            if results.pose_landmarks:
-                self._send_pose_data(results.pose_landmarks)
+            if results_pose.pose_landmarks:
+                self._send_pose_data(results_pose.pose_landmarks)
                 
                 # Draw landmarks
                 self.mp_drawing.draw_landmarks(
                     frame,
-                    results.pose_landmarks,
+                    results_pose.pose_landmarks,
                     self.mp_pose.POSE_CONNECTIONS
                 )
+            
+            # Send face data
+            if results_face.multi_face_landmarks:
+                self._send_face_data(results_face.multi_face_landmarks[0])
             
             # FPS counter
             fps_counter += 1
@@ -143,17 +159,54 @@ class BodyTracker:
                 'right_ankle': self.mp_pose.PoseLandmark.RIGHT_ANKLE.value,
             }
             
-            # Send each landmark
+            # Send each landmark with visibility (confidence)
             for part_name, landmark_id in landmark_map.items():
                 lm = landmarks.landmark[landmark_id]
                 
-                # Send as /body/{part}/{x,y,z}
+                # Send as /body/{part}/{x,y,z,visibility}
                 self.osc_client.send_message(f"/body/{part_name}/x", lm.x)
                 self.osc_client.send_message(f"/body/{part_name}/y", lm.y)
                 self.osc_client.send_message(f"/body/{part_name}/z", lm.z)
+                # 信頼度を送信（0-1の範囲、1が最も信頼できる）
+                self.osc_client.send_message(f"/body/{part_name}/visibility", lm.visibility)
         
         except Exception as e:
             print(f"⚠️ OSC send error: {e}")
+    
+    def _send_face_data(self, face_landmarks):
+        """Send face expression data via OSC"""
+        try:
+            # MediaPipe Face Mesh landmark indices
+            # 口の開き: 上唇中央(13) と 下唇中央(14) の距離
+            upper_lip = face_landmarks.landmark[13]
+            lower_lip = face_landmarks.landmark[14]
+            mouth_open = abs(upper_lip.y - lower_lip.y) * 10  # スケーリング
+            
+            # 笑顔: 口角(61, 291) の上昇度合い
+            left_mouth_corner = face_landmarks.landmark[61]
+            right_mouth_corner = face_landmarks.landmark[291]
+            mouth_center_y = (left_mouth_corner.y + right_mouth_corner.y) / 2
+            smile = max(0, (0.5 - mouth_center_y) * 5)  # 口角が上がるほど大きい値
+            
+            # まばたき: 目の開き具合 (左目: 159-145, 右目: 386-374)
+            left_eye_top = face_landmarks.landmark[159]
+            left_eye_bottom = face_landmarks.landmark[145]
+            left_eye_open = abs(left_eye_top.y - left_eye_bottom.y) * 20
+            left_blink = max(0, 1 - left_eye_open)  # 閉じているほど1に近い
+            
+            right_eye_top = face_landmarks.landmark[386]
+            right_eye_bottom = face_landmarks.landmark[374]
+            right_eye_open = abs(right_eye_top.y - right_eye_bottom.y) * 20
+            right_blink = max(0, 1 - right_eye_open)
+            
+            # OSC送信
+            self.osc_client.send_message("/face/mouth_open", float(mouth_open))
+            self.osc_client.send_message("/face/smile", float(smile))
+            self.osc_client.send_message("/face/blink_left", float(left_blink))
+            self.osc_client.send_message("/face/blink_right", float(right_blink))
+            
+        except Exception as e:
+            print(f"⚠️ Face OSC send error: {e}")
 
 
 if __name__ == "__main__":

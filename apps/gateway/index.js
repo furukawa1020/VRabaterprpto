@@ -60,12 +60,19 @@ let trackingData = {
   confidence: 1.0,
   // 体データ
   body: {
-    shoulder: { left: { x: 0, y: 0, z: 0 }, right: { x: 0, y: 0, z: 0 } },
-    elbow: { left: { x: 0, y: 0, z: 0 }, right: { x: 0, y: 0, z: 0 } },
-    wrist: { left: { x: 0, y: 0, z: 0 }, right: { x: 0, y: 0, z: 0 } },
-    hip: { left: { x: 0, y: 0, z: 0 }, right: { x: 0, y: 0, z: 0 } },
-    knee: { left: { x: 0, y: 0, z: 0 }, right: { x: 0, y: 0, z: 0 } },
-    ankle: { left: { x: 0, y: 0, z: 0 }, right: { x: 0, y: 0, z: 0 } },
+    shoulder: { left: { x: 0, y: 0, z: 0, visibility: 0 }, right: { x: 0, y: 0, z: 0, visibility: 0 } },
+    elbow: { left: { x: 0, y: 0, z: 0, visibility: 0 }, right: { x: 0, y: 0, z: 0, visibility: 0 } },
+    wrist: { left: { x: 0, y: 0, z: 0, visibility: 0 }, right: { x: 0, y: 0, z: 0, visibility: 0 } },
+    hip: { left: { x: 0, y: 0, z: 0, visibility: 0 }, right: { x: 0, y: 0, z: 0, visibility: 0 } },
+    knee: { left: { x: 0, y: 0, z: 0, visibility: 0 }, right: { x: 0, y: 0, z: 0, visibility: 0 } },
+    ankle: { left: { x: 0, y: 0, z: 0, visibility: 0 }, right: { x: 0, y: 0, z: 0, visibility: 0 } },
+    // 表情データ (MediaPipe FaceMeshから)
+    face: {
+      mouthOpen: 0,
+      smile: 0,
+      eyeBlinkLeft: 0,
+      eyeBlinkRight: 0
+    }
   }
 };
 
@@ -149,25 +156,45 @@ faceUdpServer.on('message', (msg, rinfo) => {
 oscServerBody.on('message', (oscMsg) => {
   try {
     const address = oscMsg.address;
-    const args = oscMsg.args.map(arg => arg.value);
+    const value = oscMsg.args[0].value;
     
-    // デバッグ: 5%の確率でログ出力（体データは少ないので確率アップ）
-    if (Math.random() < 0.05) {
-      console.log('[OSC BODY]', address, '→', args);
+    // デバッグ: 1%の確率でログ出力
+    if (Math.random() < 0.01) {
+      console.log('[OSC BODY]', address, '→', value);
     }
     
-    // 体データのパース: /body/shoulder/left → body.shoulder.left
+    // 体データのパース: /body/left_shoulder/x → body.shoulder.left.x
     if (address.startsWith('/body/')) {
       const parts = address.split('/');
-      const joint = parts[2]; // shoulder, elbow, wrist, hip, knee, ankle
-      const side = parts[3];  // left, right
+      // parts[0] = '', parts[1] = 'body', parts[2] = 'left_shoulder', parts[3] = 'x' or 'visibility'
+      const fullJoint = parts[2]; // 'left_shoulder' or 'right_elbow'
+      const axis = parts[3]; // 'x', 'y', 'z', or 'visibility'
       
-      if (trackingData.body[joint] && trackingData.body[joint][side]) {
-        trackingData.body[joint][side] = {
-          x: args[0] || 0,
-          y: args[1] || 0,
-          z: args[2] || 0,
-        };
+      // 'left_shoulder' → side='left', joint='shoulder'
+      const match = fullJoint.match(/^(left|right)_(.+)$/);
+      if (match) {
+        const side = match[1]; // 'left' or 'right'
+        const joint = match[2]; // 'shoulder', 'elbow', etc.
+        
+        if (trackingData.body[joint] && trackingData.body[joint][side]) {
+          trackingData.body[joint][side][axis] = value;
+        }
+      }
+    }
+    
+    // 表情データのパース: /face/mouth_open → body.face.mouthOpen
+    if (address.startsWith('/face/')) {
+      const parts = address.split('/');
+      const faceParam = parts[2]; // 'mouth_open', 'smile', etc.
+      
+      if (faceParam === 'mouth_open') {
+        trackingData.body.face.mouthOpen = value;
+      } else if (faceParam === 'smile') {
+        trackingData.body.face.smile = value;
+      } else if (faceParam === 'blink_left') {
+        trackingData.body.face.eyeBlinkLeft = value;
+      } else if (faceParam === 'blink_right') {
+        trackingData.body.face.eyeBlinkRight = value;
       }
     }
     
